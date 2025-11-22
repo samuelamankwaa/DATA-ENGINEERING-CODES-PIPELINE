@@ -1,0 +1,17 @@
+---- Find the name and the content of the last post published by the top publisher (who has the  most posts). ----
+WITH posts_ranking AS (
+SELECT 
+     NAME,
+     Content,
+     ROW_NUMBER () OVER (PARTITION BY DPR.Publisher_id ORDER BY creation_date) as rn
+FROM fact_reddit FR
+JOIN dim_publishers_reddit DPR
+ON FR.Publisher_id = DPR.Publisher_id
+)
+
+SELECT NAME,
+       Content,
+       rn AS last_post_rank
+FROM posts_ranking
+WHERE rn = (SELECT MAX(rn) FROM posts_ranking);
+    
