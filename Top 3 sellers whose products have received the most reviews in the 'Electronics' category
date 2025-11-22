@@ -1,0 +1,22 @@
+--- Writing a query to identify the top 3 sellers whose products have received the most reviews in the 'Electronics' category.
+--- Output should be seller_id, seller_name , count as total_reviews
+-- Tables: reviews, products_amz, productsellers, sellers
+
+-- SELECT * FROM reviews limit 10
+-- SELECT * FROM products_amz limit 10
+
+SELECT 
+    se.seller_id,
+    se.seller_name,
+    COUNT(rvw.review_id) AS total_reviews
+FROM sellers se
+INNER JOIN productsellers pr
+    ON se.seller_id = pr.seller_id
+INNER JOIN products_amz p
+    ON pr.product_id = p.product_id
+INNER JOIN reviews rvw
+    ON p.product_id = rvw.product_id
+WHERE p.category = 'Electronics'
+GROUP BY se.seller_id, se.seller_name
+ORDER BY total_reviews DESC
+LIMIT 3;
