@@ -1,0 +1,11 @@
+-- Understand customer activity by tracking how many orders each customer has placed. This helps identify highly active users and trends in buying behavior.
+-- Query to count the number of orders placed by each customer. Return customer_name and total_orders, and order the results in descending order of total_orders.
+
+SELECT
+    c.customer_name,
+    COUNT(o.order_id) AS total_orders
+ FROM customers_amz c
+ JOIN orders_amz o 
+      ON o.customer_id = c.customer_id
+  GROUP BY c.customer_name
+  ORDER BY total_orders DESC;
