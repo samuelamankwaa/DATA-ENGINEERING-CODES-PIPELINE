@@ -1,0 +1,46 @@
+---The business is curious to know how different seasons of the year impact sales, especially in the 'Electronics' category.
+---A query to identify the total sales of electronics products for each of the four seasons (Spring: March, April, May; Summer: June, July, August; Autumn: September, October, November; Winter: December, January, February)
+SELECT
+    CASE
+    WHEN MONTH(o.order_date) IN (3, 4, 5) THEN 'Spring'
+    WHEN MONTH(o.order_date) IN (6, 7, 8) THEN 'Summer'
+    WHEN MONTH(o.order_date) IN (9, 10, 11) THEN 'Autumn'
+    ELSE 'Winter'
+    END AS Season,
+    SUM(total_price) AS TotalSales
+FROM
+    orderdetails od
+JOIN
+    products_amz p ON od.product_id = p.product_id
+JOIN
+    orders_amz o ON od.order_id=o.order_id
+WHERE
+    p.category = 'Electronics'
+GROUP BY
+    Season
+ORDER BY
+    TotalSales DESC;
+
+==============================================================================================================================================================================================================================================
+==============================================================================================================================================================================================================================================
+
+WITH sales_data AS (
+    SELECT
+        CASE 
+            WHEN MONTH(o.order_date) IN (3, 4, 5)     THEN 'Spring'
+            WHEN MONTH(o.order_date) IN (6, 7, 8)     THEN 'Summer'
+            WHEN MONTH(o.order_date) IN (9, 10, 11)   THEN 'Autumn'
+            ELSE 'Winter'
+        END AS Season,
+        od.total_price
+    FROM orderdetails od
+    JOIN products_amz p ON od.product_id = p.product_id
+    JOIN orders_amz o ON od.order_id = o.order_id
+    WHERE p.category = 'Electronics'
+)
+SELECT 
+    Season,
+    SUM(total_price) AS TotalSales
+FROM sales_data
+GROUP BY Season
+ORDER BY TotalSales DESC;
