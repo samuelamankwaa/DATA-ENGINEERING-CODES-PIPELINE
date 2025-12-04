@@ -1,0 +1,72 @@
+-- For each customer and product, calculate the difference in quantity ordered between the previous order of the same product and the current order. 
+-- Identify the product with the largest absolute change for each customer.
+-- Output the customer_id, product_id, and product_name for the product with the most significant quantity change.
+
+
+WITH OrderDetailsWithChange AS (
+    SELECT
+        customer_id,
+        product_id,
+        order_id, -- Unique identifier for each order
+        SUM(quantity) AS total_quantity_ordered,
+        LAG(SUM(quantity)) OVER (PARTITION BY customer_id, product_id ORDER BY order_id) AS previous_quantity_ordered,
+        ABS(SUM(quantity) - LAG(SUM(quantity)) OVER (PARTITION BY customer_id,product_id ORDER BY order_id)) AS quantity_change
+    FROM
+        orders_amz o
+    JOIN
+        orderdetails od
+    USING(order_id)
+    GROUP BY
+        customer_id, order_id, product_id
+)
+SELECT
+    od.customer_id,
+    od.product_id,
+    p.product_name
+FROM
+    OrderDetailsWithChange od
+JOIN
+    products_amz p ON od.product_id = p.product_id
+WHERE
+    quantity_change IS NOT NULL
+ORDER BY
+    quantity_change DESC
+LIMIT 1;
+
+========================================================================================================================================================
+========================================================================================================================================================
+
+WITH CustomerProductOrders AS (
+    SELECT 
+        o.customer_id,
+        od.product_id,
+        p.product_name,
+        o.order_id,
+        SUM(od.quantity) AS qty_this_order,
+        LAG(SUM(od.quantity)) OVER (
+            PARTITION BY o.customer_id, od.product_id 
+            ORDER BY o.order_id
+        ) AS qty_previous_order
+    FROM orders_amz o
+    JOIN orderdetails od USING (order_id)
+    JOIN products_amz p ON od.product_id = p.product_id
+    GROUP BY o.customer_id, od.product_id, p.product_name, o.order_id
+),
+Changes AS (
+    SELECT 
+        customer_id,
+        product_id,
+        product_name,
+        qty_this_order,
+        qty_previous_order,
+        ABS(qty_this_order - COALESCE(qty_previous_order, qty_this_order)) AS quantity_change
+    FROM CustomerProductOrders
+    WHERE qty_previous_order IS NOT NULL  -- Only compare when there IS a previous order
+)
+SELECT 
+    customer_id,
+    product_id,
+    product_name
+FROM Changes
+ORDER BY quantity_change DESC
+LIMIT 1;
