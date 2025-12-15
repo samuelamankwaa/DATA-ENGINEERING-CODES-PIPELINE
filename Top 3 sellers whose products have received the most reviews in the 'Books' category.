@@ -1,0 +1,99 @@
+WITH TopSellers AS (
+    SELECT
+        s.seller_id,
+        s.seller_name,
+        COUNT(DISTINCT r.product_id) AS reviewed_product_count
+    FROM
+        sellers s
+    JOIN
+        productsellers ps ON s.seller_id = ps.seller_id
+    JOIN
+        reviews r ON ps.product_id = r.product_id
+    JOIN
+        products_amz p ON p.product_id = ps.product_id
+    WHERE
+        p.category = 'Books'
+    GROUP BY
+        s.seller_id, s.seller_name
+    ORDER BY
+        reviewed_product_count DESC
+    LIMIT 3
+),
+AverageRatings AS (
+    SELECT
+        ts.seller_id,
+        AVG(r.rating) AS average_rating
+    FROM
+        TopSellers ts
+    JOIN
+        productsellers ps ON ts.seller_id = ps.seller_id
+    JOIN
+        reviews r ON ps.product_id = r.product_id
+    GROUP BY
+        ts.seller_id
+)
+SELECT
+    ts.seller_id,
+    ts.seller_name,
+    ar.average_rating,
+    COUNT(DISTINCT CASE WHEN r.rating = 5 THEN ps.product_id END) AS
+    five_star_products
+FROM
+    TopSellers ts
+JOIN
+    AverageRatings ar ON ts.seller_id = ar.seller_id
+JOIN
+    productsellers ps ON ts.seller_id = ps.seller_id
+JOIN
+    reviews r ON ps.product_id = r.product_id
+GROUP BY
+    ts.seller_id, ts.seller_name, ar.average_rating
+ORDER BY
+    ts.seller_id;
+
+=======================================================================================================================================================================================
+=======================================================================================================================================================================================
+
+WITH SellerStats AS (
+    SELECT
+        s.seller_id,
+        s.seller_name,
+        COUNT(DISTINCT r.product_id) AS reviewed_product_count
+    FROM sellers s
+    JOIN productsellers ps
+        ON s.seller_id = ps.seller_id
+    JOIN reviews r
+        ON ps.product_id = r.product_id
+    JOIN products_amz p
+        ON p.product_id = ps.product_id
+    WHERE
+        p.category = 'Books'
+    GROUP BY
+        s.seller_id,
+        s.seller_name
+),
+RankedSellers AS (
+    SELECT
+        seller_id,
+        seller_name,
+        reviewed_product_count,
+        ROW_NUMBER() OVER (ORDER BY reviewed_product_count DESC) AS rn
+    FROM SellerStats
+)
+SELECT
+    rs.seller_id,
+    rs.seller_name,
+    AVG(r.rating) AS average_rating,
+    COUNT(DISTINCT CASE WHEN r.rating = 5 THEN ps.product_id END) AS five_star_products
+FROM RankedSellers rs
+JOIN productsellers ps
+    ON rs.seller_id = ps.seller_id
+JOIN reviews r
+    ON ps.product_id = r.product_id
+WHERE
+    rs.rn <= 3
+GROUP BY
+    rs.seller_id,
+    rs.seller_name
+ORDER BY
+    rs.seller_id;
