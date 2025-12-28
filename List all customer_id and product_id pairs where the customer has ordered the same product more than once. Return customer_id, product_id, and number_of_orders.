@@ -1,0 +1,35 @@
+SELECT 
+    o.customer_id,
+    od.product_id,
+    COUNT(*) AS number_of_orders
+FROM orders_amz o
+JOIN orderdetails od ON o.order_id = od.order_id
+GROUP BY o.customer_id, od.product_id
+HAVING COUNT(*) > 1
+ORDER BY number_of_orders DESC;
+
+
+===================================================================================================================================
+===================================================================================================================================
+
+SELECT
+    customer_id,
+    product_id,
+    number_of_orders
+FROM (
+    SELECT
+        o.customer_id,
+        od.product_id,
+        COUNT(*) AS number_of_orders
+    FROM
+        orders_amz o
+    JOIN
+        orderdetails od ON o.order_id = od.order_id
+    GROUP BY
+        o.customer_id,
+        od.product_id
+) t
+WHERE
+    number_of_orders > 1
+ORDER BY
+    number_of_orders DESC;
