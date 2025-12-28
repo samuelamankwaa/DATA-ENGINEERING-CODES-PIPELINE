@@ -1,0 +1,37 @@
+SELECT
+    product_id,
+    product_name,
+    latest_price,
+    average_order_price
+FROM (
+    SELECT
+        p.product_id,
+        p.product_name,
+        p.price AS latest_price,
+        ROUND(SUM(od.total_price) / SUM(od.quantity), 2) AS average_order_price,
+        p.price - ROUND(SUM(od.total_price) / SUM(od.quantity), 2) AS price_difference
+    FROM
+        products_amz p
+    JOIN
+        orderdetails od ON p.product_id = od.product_id
+    GROUP BY
+        p.product_id,
+        p.product_name,
+        p.price
+) t
+WHERE
+    latest_price > average_order_price
+ORDER BY
+    price_difference DESC;
+========================================================================================================================================
+========================================================================================================================================
+SELECT 
+    p.product_id,
+    p.product_name,
+    p.price AS latest_price,
+    ROUND(SUM(od.total_price) / SUM(od.quantity), 2) AS average_order_price
+FROM products_amz p
+JOIN orderdetails od ON p.product_id = od.product_id
+GROUP BY p.product_id, p.product_name, p.price
+HAVING p.price > average_order_price
+ORDER BY p.price - average_order_price DESC;
