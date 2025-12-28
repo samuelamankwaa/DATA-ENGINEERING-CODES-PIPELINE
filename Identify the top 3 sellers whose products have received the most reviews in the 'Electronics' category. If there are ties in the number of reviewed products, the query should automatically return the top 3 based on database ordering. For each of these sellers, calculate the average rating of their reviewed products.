@@ -1,0 +1,88 @@
+SELECT
+    seller_id,
+    seller_name,
+    average_rating
+FROM (
+    SELECT
+        s.seller_id,
+        s.seller_name,
+        AVG(r.rating) AS average_rating,
+        DENSE_RANK() OVER (ORDER BY COUNT(DISTINCT r.product_id) DESC) AS rank_by_reviewed_products
+    FROM
+        sellers s
+    JOIN
+        productsellers ps ON s.seller_id = ps.seller_id
+    JOIN
+        products_amz p ON p.product_id = ps.product_id
+    JOIN
+        reviews r ON ps.product_id = r.product_id
+    WHERE
+        p.category = 'Electronics'
+    GROUP BY
+        s.seller_id,
+        s.seller_name
+) ranked
+WHERE
+    rank_by_reviewed_products <= 3
+ORDER BY
+    rank_by_reviewed_products
+LIMIT 3;
+
+===========================================================================================================================================================
+===========================================================================================================================================================
+SELECT
+    t.seller_id,
+    t.seller_name,
+    AVG(r.rating) AS average_rating
+FROM (
+    SELECT
+        s.seller_id,
+        s.seller_name,
+        COUNT(DISTINCT r.product_id) AS reviewed_product_count
+    FROM
+        sellers s
+    JOIN
+        productsellers ps ON s.seller_id = ps.seller_id
+    JOIN
+        products_amz p ON p.product_id = ps.product_id
+    JOIN
+        reviews r ON ps.product_id = r.product_id
+    WHERE
+        p.category = 'Electronics'
+    GROUP BY
+        s.seller_id,
+        s.seller_name
+) t
+JOIN (
+    -- Subquery to find the 3rd highest reviewed_product_count
+    SELECT
+        reviewed_product_count
+    FROM (
+        SELECT
+            s.seller_id,
+            COUNT(DISTINCT r.product_id) AS reviewed_product_count
+        FROM
+            sellers s
+        JOIN
+            productsellers ps ON s.seller_id = ps.seller_id
+        JOIN
+            products_amz p ON p.product_id = ps.product_id
+        JOIN
+            reviews r ON ps.product_id = r.product_id
+        WHERE
+            p.category = 'Electronics'
+        GROUP BY
+            s.seller_id
+        ORDER BY
+            reviewed_product_count DESC
+        LIMIT 3, 1  -- Gets the row right after the top 3 (i.e., 4th highest)
+    ) x
+) cutoff ON t.reviewed_product_count >= cutoff.reviewed_product_count
+JOIN productsellers ps ON t.seller_id = ps.seller_id
+JOIN reviews r ON ps.product_id = r.product_id
+GROUP BY
+    t.seller_id,
+    t.seller_name
+ORDER BY
+    t.reviewed_product_count DESC
+LIMIT 3;
