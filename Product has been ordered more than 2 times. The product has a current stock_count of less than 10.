@@ -1,0 +1,56 @@
+--You are a Data Analyst in Amazon's Seller Services Team. To ensure that popular products remain available for future sales, you need to identify products that meet both of the following conditions:
+--The product has been ordered more than 2 times.
+--The product has a current stock_count of less than 10.
+--In addition to identifying these products, the team wants to analyze their financial and review performance.
+======================================================================================================
+======================================================================================================
+SELECT
+    pp.product_id,
+    pp.product_name,
+    pp.seller_id,
+    ls.stock_count,
+    SUM(od.quantity * pp.price) AS total_sales_revenue,
+    ra.average_review_rating,
+    s.seller_name
+FROM (
+    SELECT
+        p.product_id,
+        p.product_name,
+        p.price,
+        ps.seller_id
+    FROM products_amz p
+    JOIN orderdetails od ON p.product_id = od.product_id
+    JOIN productsellers ps ON ps.product_id = p.product_id
+    GROUP BY p.product_id, p.product_name, p.price, ps.seller_id
+    HAVING COUNT(DISTINCT od.order_id) > 2
+) AS pp
+JOIN (
+    SELECT
+        p.product_id,
+        p.product_name,
+        ps.seller_id,
+        p.stock_count
+    FROM products_amz p
+    JOIN productsellers ps ON ps.product_id = p.product_id
+    WHERE p.stock_count < 10
+) AS ls
+    ON pp.product_id = ls.product_id
+JOIN (
+    SELECT
+        product_id,
+        AVG(rating) AS average_review_rating
+    FROM reviews
+    GROUP BY product_id
+) AS ra
+    ON pp.product_id = ra.product_id
+JOIN orderdetails od
+    ON pp.product_id = od.product_id
+JOIN sellers s
+    ON pp.seller_id = s.seller_id
+GROUP BY
+    pp.product_id,
+    pp.product_name,
+    pp.seller_id,
+    ls.stock_count,
+    ra.average_review_rating,
+    s.seller_name;
