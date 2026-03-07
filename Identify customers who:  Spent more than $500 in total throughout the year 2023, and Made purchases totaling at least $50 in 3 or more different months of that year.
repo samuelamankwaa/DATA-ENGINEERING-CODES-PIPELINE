@@ -1,0 +1,44 @@
+--Amazon’s leadership team wants to identify the top-selling product (by revenue) in each category for the first quarter (January–March) of 2023. This helps highlight early-year high performers.
+--Question:
+--Write a query to find, for each category, the product with the highest total sales revenue (quantity × price) in the first 3 months of 2023.
+--Include ties if multiple products had the same revenue.
+--Return category, product_id, product_name, and total_revenue.
+--Tables: orders_amz, orderdetails, products_amz
+=============================================================================================================================================
+=============================================================================================================================================
+SELECT
+    rpp.category,
+    rpp.product_id,
+    rpp.product_name,
+    rpp.total_revenue
+FROM (
+    SELECT 
+        p.category,
+        p.product_id,
+        p.product_name,
+        SUM(od.quantity * p.price) AS total_revenue
+    FROM orders_amz o
+    JOIN orderdetails od ON o.order_id = od.order_id
+    JOIN products_amz p ON od.product_id = p.product_id
+    WHERE YEAR(o.order_date) = 2023 
+      AND MONTH(o.order_date) BETWEEN 1 AND 3
+    GROUP BY p.category, p.product_id, p.product_name
+) AS rpp
+WHERE rpp.total_revenue = (
+    SELECT MAX(inner_rpp.total_revenue)
+    FROM (
+        SELECT 
+            p2.category,
+            p2.product_id,
+            p2.product_name,
+            SUM(od2.quantity * p2.price) AS total_revenue
+        FROM orders_amz o2
+        JOIN orderdetails od2 ON o2.order_id = od2.order_id
+        JOIN products_amz p2 ON od2.product_id = p2.product_id
+        WHERE YEAR(o2.order_date) = 2023 
+          AND MONTH(o2.order_date) BETWEEN 1 AND 3
+        GROUP BY p2.category, p2.product_id, p2.product_name
+    ) AS inner_rpp
+    WHERE inner_rpp.category = rpp.category
+)
+ORDER BY rpp.category;
