@@ -1,0 +1,44 @@
+--You are a Data Analyst in Amazon's Seller Services Team. To ensure that popular products remain available for future sales, you need to identify products that meet both of the following conditions:
+--The product has been ordered more than 2 times.
+--The product has a current stock_count of less than 10.
+--Question:
+--Write a query to:
+--Identify products meeting these conditions.
+--For each of these products, find the sellers selling them.
+--Output the product_id, product_name, seller_id and seller_name
+===========================================================================================================
+===========================================================================================================
+
+SELECT
+    pp.product_id,
+    pp.product_name,
+    lsp.seller_id,
+    s.seller_name
+FROM (
+    SELECT
+        od.product_id,
+        p.product_name
+    FROM
+        orderdetails od
+    JOIN
+        products_amz p ON od.product_id = p.product_id
+    GROUP BY
+        od.product_id, p.product_name
+    HAVING
+        COUNT(*) > 2
+) AS pp
+JOIN (
+    SELECT
+        p.product_id,
+        p.product_name,
+        ps.seller_id
+    FROM
+        products_amz p
+    JOIN
+        productsellers ps ON ps.product_id = p.product_id
+    WHERE
+        p.stock_count < 10
+) AS lsp
+    ON pp.product_id = lsp.product_id
+JOIN
+    sellers s ON lsp.seller_id = s.seller_id;
