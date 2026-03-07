@@ -1,0 +1,59 @@
+---For each product category, identify the top seller based on the total number of units sold in the year 2023. 
+---If there are ties in the number of units sold, list all tied sellers for the respective category.
+---Tables: orders_amz, orderdetails, products_amz, productsellers, sellers
+=====================================================================================================================
+SELECT DISTINCT
+    p.category,
+    s.seller_name,
+    SUM(od.quantity) AS total_units_sold
+FROM orders_amz o
+JOIN orderdetails od ON o.order_id = od.order_id
+JOIN products_amz p ON od.product_id = p.product_id
+JOIN productsellers ps ON p.product_id = ps.product_id
+JOIN sellers s ON ps.seller_id = s.seller_id
+WHERE YEAR(o.order_date) = 2023
+GROUP BY p.category, s.seller_id, s.seller_name
+HAVING SUM(od.quantity) = (
+    SELECT MAX(total_sold)
+    FROM (
+        SELECT SUM(od2.quantity) AS total_sold
+        FROM orderdetails od2
+        JOIN products_amz p2 ON od2.product_id = p2.product_id
+        JOIN productsellers ps2 ON p2.product_id = ps2.product_id
+        JOIN orders_amz o2 ON od2.order_id = o2.order_id
+        WHERE YEAR(o2.order_date) = 2023
+          AND p2.category = p.category
+        GROUP BY ps2.seller_id
+    ) t
+)
+ORDER BY p.category;
+================================================================================
+================================================================================
+WITH SellerSales AS (
+    SELECT
+        p.category,
+        ps.seller_id,
+        SUM(od.quantity) AS total_units_sold
+    FROM orders_amz o
+    JOIN orderdetails od ON o.order_id = od.order_id
+    JOIN products_amz p ON od.product_id = p.product_id
+    JOIN productsellers ps ON p.product_id = ps.product_id
+    WHERE YEAR(o.order_date)=2023
+    GROUP BY p.category, ps.seller_id
+),
+RankedSales AS (
+    SELECT
+        category,
+        seller_id,
+        total_units_sold,
+        RANK() OVER (PARTITION BY category ORDER BY total_units_sold DESC) AS rnk
+    FROM SellerSales
+)
+SELECT
+    rs.category,
+    s.seller_name,
+    rs.total_units_sold
+FROM RankedSales rs
+JOIN sellers s ON rs.seller_id = s.seller_id
+WHERE rs.rnk = 1
+ORDER BY rs.category;
